@@ -344,6 +344,29 @@
       flex-shrink: 0;
     }
 
+    /* ショップ/レゾブレム選択画面から次のステージへ進むボタン。
+       元々は F キーのみで進行できたため、キーボードの無い機器では
+       選択を終えても次のステージへ進めなくなる（進行不能）問題があった */
+    .shop-advance-btn {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px 0;
+      background: rgba(34, 211, 238, 0.12);
+      border: 2px solid var(--accent, #22d3ee);
+      border-radius: 10px;
+      color: var(--accent, #22d3ee);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+    .shop-advance-btn:hover { background: rgba(34, 211, 238, 0.22); }
+    .shop-advance-btn:active { transform: scale(0.97); }
+
 
     /* 獲得済みレゾブレムの一覧（情報パネル） */
     .inventory {
@@ -508,6 +531,9 @@
     /* ===== アイテム（ActivItem）スロットパネル ===== */
     /* プレイ画面では非表示（盤面上の READY 表示とショップ内 ITEMS で代替） */
     .activ-panel { display: none; flex-direction: column; gap: 3px; margin-top: 6px; }
+    /* タッチ操作機器: キーボードの 1/2/3 キーが無いため、盤面上の READY 表示だけでは
+       アクティブアイテムを発動できない。ITEMS パネル自体をタップ操作用に表示する */
+    body.touch-device .activ-panel { display: flex !important; }
     .activ-panel h2 { margin: 0 0 4px; font-size: 12px; color: #9ca3af; letter-spacing: 0.1em; }
     .activ-slot {
       display: flex; align-items: center; gap: 5px;
@@ -2699,6 +2725,7 @@
           <div id="itemList" class="item-modal__list"></div>
           <div id="itemLimitMsg" style="display:none;color:#ef4444;font-size:12px;text-align:center;margin:4px 0;font-weight:bold"></div>
           <p class="item-modal__hint">↑ ↓ でレゾブレム選択 / ← でアイテム切替 / Enter・Space で決定 / F でスキップ (+100 ディニー)</p>
+          <button type="button" id="shopAdvanceBtn" class="shop-advance-btn" onclick="shopAdvanceOrSkip()">▶ 次のステージへ</button>
           <div id="rerollContainer" style="display:none; text-align:center; margin: 4px 0 8px;"></div>
           <div id="kijutsuShopContainer" style="display:none; margin: 6px 0;"></div>
           <div class="item-modal__shop" id="itemShop" style="display:none">
@@ -10842,6 +10869,26 @@ UI改善
       }
     }
 
+    // ショップ/レゾブレム選択画面から次のステージへ進む（F キー相当）。
+    // 元々は F キーのみで進行できたため、物理キーボードの無い機器では
+    // 選択を終えても次のステージへ進めなくなる（進行不能）問題があった。
+    // 「▶ 次のステージへ」ボタンから呼び出す想定で、モーダル表示中は常時押せる。
+    function shopAdvanceOrSkip() {
+      if (itemSelecting) {
+        _closeShopOrSkip();
+      } else if (shopVisible && itemOnDone) {
+        shopVisible = false;
+        closeActivShopPopup();
+        closeTagConfig();
+        itemModalEl.classList.remove('show');
+        const cb = itemOnDone;
+        itemOnDone = null;
+        cb();
+      }
+    }
+    // HTML の onclick 属性から確実に呼び出せるようグローバル登録
+    window.shopAdvanceOrSkip = shopAdvanceOrSkip;
+
     function renderItemChoices() {
       // デバッグモード時はモーダルを拡張
       const innerEl = document.getElementById('itemModalInner');
@@ -15783,6 +15830,7 @@ UI改善
     // =============================================
     (function touchControlsInit() {
       const isTouchDevice = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+      document.body.classList.toggle('touch-device', isTouchDevice);
       const panel = document.getElementById('touchControls');
       if (!panel) return;
 
